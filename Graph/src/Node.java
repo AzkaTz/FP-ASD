@@ -1,7 +1,3 @@
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
 // Node class representing a vertex in the graph
 public class Node {
     private int id;
