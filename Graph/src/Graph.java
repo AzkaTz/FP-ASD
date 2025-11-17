@@ -1,158 +1,155 @@
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
-public class Graph {
-    private int numNodes;
+class Graph {
+    private ArrayList<Node> nodes;
+    private ArrayList<Edge> edges;
     private int[][] adjacencyMatrix;
-    private List<Edge> edges;
-    private List<Integer> shortestPath;
+    private String[] label;
+    private ArrayList<Edge> shortestPathEdges; // Menyimpan edges dari path terpendek
 
-    public Graph(int numNodes) {
-        this.numNodes = numNodes;
-        this.adjacencyMatrix = new int[numNodes][numNodes];
+    public Graph(int[][] adjacencyMatrix) {
+        this.adjacencyMatrix = adjacencyMatrix;
+        this.nodes = new ArrayList<>();
         this.edges = new ArrayList<>();
-        this.shortestPath = new ArrayList<>();
+        this.shortestPathEdges = new ArrayList<>();
+        initializeGraph();
     }
 
-    public void addEdge(int source, int destination, int weight) {
-        adjacencyMatrix[source][destination] = weight;
-        adjacencyMatrix[destination][source] = weight; // Undirected graph
-        edges.add(new Edge(source, destination, weight));
+    public Graph(int[][] adjacencyMatrix, String[] l) {
+        this.adjacencyMatrix = adjacencyMatrix;
+        this.nodes = new ArrayList<>();
+        this.edges = new ArrayList<>();
+        this.label = l;
+        this.shortestPathEdges = new ArrayList<>();
+        initializeGraph();
     }
 
-    public void setShortestPath(List<Integer> path) {
-        this.shortestPath = path;
+    private void initializeGraph() {
+        int n = adjacencyMatrix.length;
+
+        // Create nodes in circular layout
+        int centerX = 400;
+        int centerY = 300;
+        int radius = 200;
+
+        for (int i = 0; i < n; i++) {
+            double angle = 2 * Math.PI * i / n;
+            int x = centerX + (int)(radius * Math.cos(angle));
+            int y = centerY + (int)(radius * Math.sin(angle));
+            nodes.add(new Node(i, x, y));
+        }
+
+        // Create edges from adjacency matrix
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (adjacencyMatrix[i][j] != 0) {
+                    edges.add(new Edge(nodes.get(i), nodes.get(j), adjacencyMatrix[i][j]));
+                }
+            }
+        }
     }
 
-    public List<Integer> getShortestPath() {
-        return shortestPath;
-    }
-
-    public int getNumNodes() {
-        return numNodes;
-    }
-
-    public int[][] getAdjacencyMatrix() {
-        return adjacencyMatrix;
-    }
-
-    public List<Edge> getEdges() {
-        return edges;
-    }
-
-    // Dijkstra Algorithm Method
-    public List<Integer> dijkstra(int source, int destination) {
-        int[] distance = new int[numNodes];
-        int[] parent = new int[numNodes];
-        boolean[] visited = new boolean[numNodes];
+    // Implementasi Algoritma Dijkstra
+    public DijkstraResult dijkstra(int sourceId, int targetId) {
+        int n = adjacencyMatrix.length;
+        int[] distances = new int[n];
+        int[] previous = new int[n];
+        boolean[] visited = new boolean[n];
 
         // Inisialisasi
-        for (int i = 0; i < numNodes; i++) {
-            distance[i] = Integer.MAX_VALUE;
-            parent[i] = -1;
-        }
-        distance[source] = 0;
+        Arrays.fill(distances, Integer.MAX_VALUE);
+        Arrays.fill(previous, -1);
+        distances[sourceId] = 0;
 
-        // Dijkstra algorithm
-        for (int count = 0; count < numNodes - 1; count++) {
-            int u = findMinDistance(distance, visited);
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[1] - b[1]);
+        pq.offer(new int[]{sourceId, 0});
 
-            if (u == -1) break;
+        while (!pq.isEmpty()) {
+            int[] current = pq.poll();
+            int currentNode = current[0];
 
-            visited[u] = true;
+            if (visited[currentNode]) continue;
+            visited[currentNode] = true;
 
-            // Update distance untuk semua neighbor
-            for (int v = 0; v < numNodes; v++) {
-                if (!visited[v] && adjacencyMatrix[u][v] != 0) {
-                    int newDist = distance[u] + adjacencyMatrix[u][v];
-                    if (newDist < distance[v]) {
-                        distance[v] = newDist;
-                        parent[v] = u;
+            // Periksa semua tetangga
+            for (int neighbor = 0; neighbor < n; neighbor++) {
+                if (adjacencyMatrix[currentNode][neighbor] != 0 && !visited[neighbor]) {
+                    int newDist = distances[currentNode] + adjacencyMatrix[currentNode][neighbor];
+
+                    if (newDist < distances[neighbor]) {
+                        distances[neighbor] = newDist;
+                        previous[neighbor] = currentNode;
+                        pq.offer(new int[]{neighbor, newDist});
                     }
                 }
             }
         }
 
-        // Reconstruct path
-        List<Integer> path = new ArrayList<>();
-        int current = destination;
-
-        while (current != -1) {
-            path.add(current);
-            current = parent[current];
+        // Rekonstruksi path
+        ArrayList<Integer> path = new ArrayList<>();
+        if (distances[targetId] != Integer.MAX_VALUE) {
+            int current = targetId;
+            while (current != -1) {
+                path.add(0, current);
+                current = previous[current];
+            }
         }
 
-        Collections.reverse(path);
+        // Update shortestPathEdges
+        updateShortestPathEdges(path);
 
-        // Print hasil
-        if (distance[destination] == Integer.MAX_VALUE) {
-            System.out.println("\n❌ Tidak ada path dari N" + source + " ke N" + destination);
-        } else {
-            System.out.println("\n╔════════════════════════════════════╗");
-            System.out.println("║     DIJKSTRA SHORTEST PATH         ║");
-            System.out.println("╚════════════════════════════════════╝\n");
-            System.out.println("📍 Source: N" + source);
-            System.out.println("🎯 Destination: N" + destination);
-            System.out.println("📏 Total Distance: " + distance[destination]);
+        return new DijkstraResult(distances[targetId], path);
+    }
 
-            System.out.println("\n🛣️  Path: ");
-            for (int i = 0; i < path.size(); i++) {
-                System.out.print("N" + path.get(i));
-                if (i < path.size() - 1) {
-                    System.out.print(" → ");
+    private void updateShortestPathEdges(ArrayList<Integer> path) {
+        shortestPathEdges.clear();
+
+        for (int i = 0; i < path.size() - 1; i++) {
+            int from = path.get(i);
+            int to = path.get(i + 1);
+
+            // Cari edge yang sesuai
+            for (Edge edge : edges) {
+                if (edge.getSource().getId() == from && edge.getTarget().getId() == to) {
+                    shortestPathEdges.add(edge);
+                    break;
                 }
             }
-            System.out.println("\n");
+        }
+    }
 
-            System.out.println("📋 Nodes in order:");
+    public ArrayList<Node> getNodes() { return nodes; }
+    public ArrayList<Edge> getEdges() { return edges; }
+    public int[][] getAdjacencyMatrix() { return adjacencyMatrix; }
+    public String[] getLabel() { return label; }
+    public ArrayList<Edge> getShortestPathEdges() { return shortestPathEdges; }
+
+    // Inner class untuk hasil Dijkstra
+    public static class DijkstraResult {
+        private int distance;
+        private ArrayList<Integer> path;
+
+        public DijkstraResult(int distance, ArrayList<Integer> path) {
+            this.distance = distance;
+            this.path = path;
+        }
+
+        public int getDistance() { return distance; }
+        public ArrayList<Integer> getPath() { return path; }
+
+        public String getPathString(String[] labels) {
+            if (path.isEmpty()) return "No path found";
+
+            StringBuilder sb = new StringBuilder();
             for (int i = 0; i < path.size(); i++) {
-                System.out.println("   " + (i + 1) + ". N" + path.get(i));
+                if (labels != null) {
+                    sb.append(labels[path.get(i)]);
+                } else {
+                    sb.append(path.get(i));
+                }
+                if (i < path.size() - 1) sb.append(" -> ");
             }
-            System.out.println();
+            return sb.toString();
         }
-
-        return path;
-    }
-
-    private int findMinDistance(int[] distance, boolean[] visited) {
-        int min = Integer.MAX_VALUE;
-        int minNode = -1;
-
-        for (int i = 0; i < numNodes; i++) {
-            if (!visited[i] && distance[i] < min) {
-                min = distance[i];
-                minNode = i;
-            }
-        }
-
-        return minNode;
-    }
-
-    public void printAdjacencyMatrix() {
-        System.out.println("\n╔════════════════════════════════════╗");
-        System.out.println("║   WEIGHTED ADJACENCY MATRIX        ║");
-        System.out.println("╚════════════════════════════════════╝\n");
-
-        System.out.print("     ");
-        for (int i = 0; i < numNodes; i++) {
-            System.out.print(String.format("N%-2d ", i));
-        }
-        System.out.println();
-
-        for (int i = 0; i < numNodes; i++) {
-            System.out.print(String.format("N%-2d  ", i));
-            for (int j = 0; j < numNodes; j++) {
-                System.out.print(String.format("%-3d ", adjacencyMatrix[i][j]));
-            }
-            System.out.println();
-        }
-
-        System.out.println("\n🔍 Edge Information:");
-        for (Edge edge : edges) {
-            System.out.println("   N" + edge.getSource() + " ↔ N" + edge.getDestination() +
-                    " (Weight: " + edge.getWeight() + ")");
-        }
-        System.out.println();
     }
 }

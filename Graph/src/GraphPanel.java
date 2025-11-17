@@ -2,37 +2,28 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.List;
+import java.util.ArrayList;
 
-public class GraphPanel extends JPanel {
+class GraphPanel extends JPanel {
     private Graph graph;
-    private double[] nodeX;
-    private double[] nodeY;
-    private static final int NODE_RADIUS = 30;
-    private int draggedNode = -1;
+    private Node draggedNode = null;
 
     public GraphPanel(Graph graph) {
-        if (graph == null) {
-            throw new IllegalArgumentException("Graph cannot be null");
-        }
         this.graph = graph;
-        setBackground(new Color(20, 30, 48));
-        setPreferredSize(new Dimension(1000, 700));
+        setPreferredSize(new Dimension(800, 600));
+        setBackground(Color.WHITE);
 
-        int numNodes = graph.getNumNodes();
-        nodeX = new double[numNodes];
-        nodeY = new double[numNodes];
+        // Mouse listener for dragging nodes
+        MouseAdapter mouseHandler = new MouseAdapter() {
+            private int offsetX, offsetY;
 
-        calculateNodePositions();
-
-        // Mouse listener untuk drag
-        addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                for (int i = 0; i < graph.getNumNodes(); i++) {
-                    double dist = Math.hypot(e.getX() - nodeX[i], e.getY() - nodeY[i]);
-                    if (dist <= NODE_RADIUS) {
-                        draggedNode = i;
+                for (Node node : graph.getNodes()) {
+                    if (node.contains(e.getX(), e.getY())) {
+                        draggedNode = node;
+                        offsetX = e.getX() - node.getX();
+                        offsetY = e.getY() - node.getY();
                         break;
                     }
                 }
@@ -40,40 +31,21 @@ public class GraphPanel extends JPanel {
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                draggedNode = -1;
+                draggedNode = null;
             }
-        });
 
-        addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (draggedNode != -1) {
-                    nodeX[draggedNode] = e.getX();
-                    nodeY[draggedNode] = e.getY();
+                if (draggedNode != null) {
+                    draggedNode.setX(e.getX() - offsetX);
+                    draggedNode.setY(e.getY() - offsetY);
                     repaint();
                 }
             }
-        });
-    }
+        };
 
-    private void calculateNodePositions() {
-        int width = getWidth();
-        int height = getHeight();
-
-        if (width <= 1 || height <= 1) {
-            width = 1000;
-            height = 700;
-        }
-
-        double centerX = width / 2.0;
-        double centerY = height / 2.0;
-        double radius = Math.min(width, height) / 2.0 - 100;
-
-        for (int i = 0; i < graph.getNumNodes(); i++) {
-            double angle = 2 * Math.PI * i / graph.getNumNodes() - Math.PI / 2;
-            nodeX[i] = centerX + radius * Math.cos(angle);
-            nodeY[i] = centerY + radius * Math.sin(angle);
-        }
+        addMouseListener(mouseHandler);
+        addMouseMotionListener(mouseHandler);
     }
 
     @Override
@@ -81,112 +53,94 @@ public class GraphPanel extends JPanel {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        calculateNodePositions();
+        ArrayList<Edge> shortestPathEdges = graph.getShortestPathEdges();
 
-        drawEdges(g2d);
-        drawNodes(g2d);
-    }
-
-    private void drawEdges(Graphics2D g2d) {
-        g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-
+        // Draw edges (non-path edges)
+        g2d.setStroke(new BasicStroke(2));
         for (Edge edge : graph.getEdges()) {
-            int source = edge.getSource();
-            int dest = edge.getDestination();
-            int weight = edge.getWeight();
+            Node source = edge.getSource();
+            Node target = edge.getTarget();
 
             // Cek apakah edge ini bagian dari shortest path
-            boolean isInPath = isEdgeInPath(source, dest);
+            boolean isInPath = shortestPathEdges.contains(edge);
 
-            // Warna edge
-            Color edgeColor;
             if (isInPath) {
-                edgeColor = new Color(255, 0, 0); // Merah untuk shortest path
-                g2d.setStroke(new BasicStroke(4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                // Gambar dengan warna hijau tebal untuk path
+                g2d.setColor(new Color(255, 0, 0)); // Hijau
+                g2d.setStroke(new BasicStroke(4));
             } else {
-                float hue = (10 - weight) / 10.0f;
-                edgeColor = Color.getHSBColor(hue * 0.6f, 0.8f, 0.9f);
-                g2d.setStroke(new BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                // Gambar dengan warna abu-abu tipis
+                g2d.setColor(Color.LIGHT_GRAY);
+                g2d.setStroke(new BasicStroke(2));
             }
 
-            g2d.setColor(edgeColor);
-            g2d.drawLine(
-                    (int) nodeX[source],
-                    (int) nodeY[source],
-                    (int) nodeX[dest],
-                    (int) nodeY[dest]
-            );
+            // Draw line
+            g2d.drawLine(source.getX(), source.getY(), target.getX(), target.getY());
 
-            // Label weight
-            double midX = (nodeX[source] + nodeX[dest]) / 2;
-            double midY = (nodeY[source] + nodeY[dest]) / 2;
+            // Draw arrow
+            drawArrow(g2d, source.getX(), source.getY(), target.getX(), target.getY());
 
-            g2d.setColor(new Color(20, 30, 48, 200));
-            g2d.fillRect((int) midX - 15, (int) midY - 12, 30, 24);
+            // Draw weight
+            int midX = (source.getX() + target.getX()) / 2;
+            int midY = (source.getY() + target.getY()) / 2;
 
-            g2d.setColor(edgeColor);
-            g2d.setStroke(new BasicStroke(1.5f));
-            g2d.drawRect((int) midX - 15, (int) midY - 12, 30, 24);
-
-            g2d.setColor(Color.WHITE);
-            g2d.setFont(new Font("Arial", Font.BOLD, 12));
-            FontMetrics fm = g2d.getFontMetrics();
-            String weightStr = String.valueOf(weight);
-            int labelX = (int) (midX - fm.stringWidth(weightStr) / 2);
-            int labelY = (int) (midY + fm.getAscent() / 2 - 2);
-            g2d.drawString(weightStr, labelX, labelY);
+            if (isInPath) {
+                g2d.setColor(new Color(0, 150, 0)); // Hijau gelap untuk weight
+                g2d.setFont(new Font("Arial", Font.BOLD, 14));
+            } else {
+                g2d.setColor(Color.RED);
+                g2d.setFont(new Font("Arial", Font.PLAIN, 12));
+            }
+            g2d.drawString(String.valueOf(edge.getWeight()), midX, midY);
         }
-    }
 
-    private void drawNodes(Graphics2D g2d) {
-        for (int i = 0; i < graph.getNumNodes(); i++) {
-            // Gradient fill
-            GradientPaint gradient = new GradientPaint(
-                    (float) (nodeX[i] - NODE_RADIUS), (float) (nodeY[i] - NODE_RADIUS),
-                    new Color(100, 180, 255),
-                    (float) (nodeX[i] + NODE_RADIUS), (float) (nodeY[i] + NODE_RADIUS),
-                    new Color(50, 120, 200)
-            );
-            g2d.setPaint(gradient);
-            g2d.fillOval(
-                    (int) (nodeX[i] - NODE_RADIUS),
-                    (int) (nodeY[i] - NODE_RADIUS),
-                    NODE_RADIUS * 2,
-                    NODE_RADIUS * 2
-            );
+        // Draw nodes
+        for (Node node : graph.getNodes()) {
+            g2d.setColor(new Color(100, 150, 255));
+            g2d.fillOval(node.getX() - node.getRadius(),
+                    node.getY() - node.getRadius(),
+                    node.getRadius() * 2,
+                    node.getRadius() * 2);
 
-            // Border
-            g2d.setColor(new Color(200, 220, 255));
-            g2d.setStroke(new BasicStroke(3));
-            g2d.drawOval(
-                    (int) (nodeX[i] - NODE_RADIUS),
-                    (int) (nodeY[i] - NODE_RADIUS),
-                    NODE_RADIUS * 2,
-                    NODE_RADIUS * 2
-            );
+            g2d.setColor(Color.BLACK);
+            g2d.setStroke(new BasicStroke(2));
+            g2d.drawOval(node.getX() - node.getRadius(),
+                    node.getY() - node.getRadius(),
+                    node.getRadius() * 2,
+                    node.getRadius() * 2);
 
-            // Label - Letakkan di bawah node
+            // Draw node label
             g2d.setColor(Color.WHITE);
-            g2d.setFont(new Font("Arial", Font.BOLD, 13));
+            g2d.setFont(new Font("Arial", Font.BOLD, 16));
+            String label = graph.getLabel()[node.getId()];
             FontMetrics fm = g2d.getFontMetrics();
-            String label = graph.getLabels()[i];
-            int labelX = (int) (nodeX[i] - fm.stringWidth(label) / 2);
-            int labelY = (int) (nodeY[i] + NODE_RADIUS + 20);
+            int labelX = node.getX() - fm.stringWidth(label) / 2;
+            int labelY = node.getY() + fm.getAscent() / 2;
             g2d.drawString(label, labelX, labelY);
         }
     }
 
-    private boolean isEdgeInPath(int source, int dest) {
-        List<Integer> path = graph.getShortestPath();
-        for (int i = 0; i < path.size() - 1; i++) {
-            int a = path.get(i);
-            int b = path.get(i + 1);
-            if ((a == source && b == dest) || (a == dest && b == source)) {
-                return true;
-            }
-        }
-        return false;
+    private void drawArrow(Graphics2D g2d, int x1, int y1, int x2, int y2) {
+        double angle = Math.atan2(y2 - y1, x2 - x1);
+        int arrowSize = 10;
+
+        // Calculate arrow position near target node
+        int arrowX = x2 - (int)(25 * Math.cos(angle));
+        int arrowY = y2 - (int)(25 * Math.sin(angle));
+
+        int[] xPoints = {
+                arrowX,
+                arrowX - (int)(arrowSize * Math.cos(angle - Math.PI / 6)),
+                arrowX - (int)(arrowSize * Math.cos(angle + Math.PI / 6))
+        };
+
+        int[] yPoints = {
+                arrowY,
+                arrowY - (int)(arrowSize * Math.sin(angle - Math.PI / 6)),
+                arrowY - (int)(arrowSize * Math.sin(angle + Math.PI / 6))
+        };
+
+        g2d.fillPolygon(xPoints, yPoints, 3);
     }
 }

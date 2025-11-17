@@ -1,44 +1,17 @@
-public class Edge {
-    private int source;
-    private int dest;
+class Edge {
+    private Node source;
+    private Node target;
     private int weight;
 
-    public Edge(int source, int dest, int weight) {
+
+    public Edge(Node source, Node target, int weight) {
         this.source = source;
-        this.dest = dest;
+        this.target = target;
         this.weight = weight;
     }
 
-    public int getSource() {
-        return source;
-    }
 
-    public void setSource(int source) {
-        this.source = source;
-    }
-
-    public int getDestination() {
-        return dest;
-    }
-
-    public void setDestination(int dest) {
-        this.dest = dest;
-    }
-
-    public int getWeight() {
-        return weight;
-    }
-
-    public void setWeight(int weight) {
-        this.weight = weight;
-    }
-
-    @Override
-    public String toString() {
-        return "Edge{" +
-                "source=" + source +
-                ", dest=" + dest +
-                ", weight=" + weight +
-                '}';
-    }
+    public Node getSource() { return source; }
+    public Node getTarget() { return target; }
+    public int getWeight() { return weight; }
 }

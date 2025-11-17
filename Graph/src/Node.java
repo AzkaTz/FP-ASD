@@ -1,5 +1,4 @@
-// Node class representing a vertex in the graph
-public class Node {
+class Node {
     private int id;
     private int x, y;
     private static final int RADIUS = 25;
@@ -26,4 +25,3 @@ public class Node {
         return dx * dx + dy * dy <= RADIUS * RADIUS;
     }
 }
-
