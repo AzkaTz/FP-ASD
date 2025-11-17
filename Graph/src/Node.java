@@ -2,7 +2,7 @@ class Node {
     private int id;
     private int x, y;
     private static final int RADIUS = 25;
-
+    private boolean isInPath;
 
     public Node(int id, int x, int y) {
         this.id = id;
@@ -23,5 +23,12 @@ class Node {
         int dx = px - x;
         int dy = py - y;
         return dx * dx + dy * dy <= RADIUS * RADIUS;
+    }
+    public void setInPath(boolean inPath) {
+        this.isInPath = inPath;
+    }
+
+    public boolean isInPath() {
+        return isInPath;
     }
 }

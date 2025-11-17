@@ -67,7 +67,7 @@ class GraphPanel extends JPanel {
 
             if (isInPath) {
                 // Gambar dengan warna hijau tebal untuk path
-                g2d.setColor(new Color(255, 0, 0)); // Hijau
+                g2d.setColor(new Color(200, 0, 0)); // Hijau
                 g2d.setStroke(new BasicStroke(4));
             } else {
                 // Gambar dengan warna abu-abu tipis
@@ -86,7 +86,7 @@ class GraphPanel extends JPanel {
             int midY = (source.getY() + target.getY()) / 2;
 
             if (isInPath) {
-                g2d.setColor(new Color(0, 150, 0)); // Hijau gelap untuk weight
+                g2d.setColor(new Color(200, 0, 0)); // Hijau gelap untuk weight
                 g2d.setFont(new Font("Arial", Font.BOLD, 14));
             } else {
                 g2d.setColor(Color.RED);
@@ -97,27 +97,52 @@ class GraphPanel extends JPanel {
 
         // Draw nodes
         for (Node node : graph.getNodes()) {
-            g2d.setColor(new Color(100, 150, 255));
-            g2d.fillOval(node.getX() - node.getRadius(),
-                    node.getY() - node.getRadius(),
-                    node.getRadius() * 2,
-                    node.getRadius() * 2);
+            if (node.isInPath()==true) {
+                g2d.setColor(new Color(200, 0, 0));
+                g2d.fillOval(node.getX() - node.getRadius(),
+                        node.getY() - node.getRadius(),
+                        node.getRadius() * 2,
+                        node.getRadius() * 2);
 
-            g2d.setColor(Color.BLACK);
-            g2d.setStroke(new BasicStroke(2));
-            g2d.drawOval(node.getX() - node.getRadius(),
-                    node.getY() - node.getRadius(),
-                    node.getRadius() * 2,
-                    node.getRadius() * 2);
+                g2d.setColor(Color.BLACK);
+                g2d.setStroke(new BasicStroke(2));
+                g2d.drawOval(node.getX() - node.getRadius(),
+                        node.getY() - node.getRadius(),
+                        node.getRadius() * 2,
+                        node.getRadius() * 2);
 
-            // Draw node label
-            g2d.setColor(Color.WHITE);
-            g2d.setFont(new Font("Arial", Font.BOLD, 16));
-            String label = graph.getLabel()[node.getId()];
-            FontMetrics fm = g2d.getFontMetrics();
-            int labelX = node.getX() - fm.stringWidth(label) / 2;
-            int labelY = node.getY() + fm.getAscent() / 2;
-            g2d.drawString(label, labelX, labelY);
+                // Draw node label
+                g2d.setColor(Color.WHITE);
+                g2d.setFont(new Font("Arial", Font.BOLD, 16));
+                String label = graph.getLabel()[node.getId()];
+                FontMetrics fm = g2d.getFontMetrics();
+                int labelX = node.getX() - fm.stringWidth(label) / 2;
+                int labelY = node.getY() + fm.getAscent() / 2;
+                g2d.drawString(label, labelX, labelY);
+            }
+            else {
+                g2d.setColor(new Color(100, 150, 255));
+                g2d.fillOval(node.getX() - node.getRadius(),
+                        node.getY() - node.getRadius(),
+                        node.getRadius() * 2,
+                        node.getRadius() * 2);
+
+                g2d.setColor(Color.BLACK);
+                g2d.setStroke(new BasicStroke(2));
+                g2d.drawOval(node.getX() - node.getRadius(),
+                        node.getY() - node.getRadius(),
+                        node.getRadius() * 2,
+                        node.getRadius() * 2);
+
+                // Draw node label
+                g2d.setColor(Color.WHITE);
+                g2d.setFont(new Font("Arial", Font.BOLD, 16));
+                String label = graph.getLabel()[node.getId()];
+                FontMetrics fm = g2d.getFontMetrics();
+                int labelX = node.getX() - fm.stringWidth(label) / 2;
+                int labelY = node.getY() + fm.getAscent() / 2;
+                g2d.drawString(label, labelX, labelY);
+            }
         }
     }
 

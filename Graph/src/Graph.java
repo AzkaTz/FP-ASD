@@ -6,12 +6,14 @@ class Graph {
     private int[][] adjacencyMatrix;
     private String[] label;
     private ArrayList<Edge> shortestPathEdges; // Menyimpan edges dari path terpendek
+    private ArrayList<Integer> shortestPathNodes; // Menyimpan nodes dari path terpendek
 
     public Graph(int[][] adjacencyMatrix) {
         this.adjacencyMatrix = adjacencyMatrix;
         this.nodes = new ArrayList<>();
         this.edges = new ArrayList<>();
         this.shortestPathEdges = new ArrayList<>();
+        this.shortestPathNodes = new ArrayList<>();
         initializeGraph();
     }
 
@@ -21,6 +23,7 @@ class Graph {
         this.edges = new ArrayList<>();
         this.label = l;
         this.shortestPathEdges = new ArrayList<>();
+        this.shortestPathNodes = new ArrayList<>();
         initializeGraph();
     }
 
@@ -95,7 +98,7 @@ class Graph {
             }
         }
 
-        // Update shortestPathEdges
+        // Update shortestPathEdges dan shortestPathNodes
         updateShortestPathEdges(path);
 
         return new DijkstraResult(distances[targetId], path);
@@ -103,6 +106,13 @@ class Graph {
 
     private void updateShortestPathEdges(ArrayList<Integer> path) {
         shortestPathEdges.clear();
+        shortestPathNodes.clear();
+        shortestPathNodes.addAll(path);
+
+        // Mark nodes sebagai bagian dari path
+        for (Integer nodeId : path) {
+            nodes.get(nodeId).setInPath(true);
+        }
 
         for (int i = 0; i < path.size() - 1; i++) {
             int from = path.get(i);
@@ -118,11 +128,21 @@ class Graph {
         }
     }
 
+    // Method baru untuk clear highlight
+    public void clearHighlight() {
+        for (Node node : nodes) {
+            node.setInPath(false);
+        }
+        shortestPathEdges.clear();
+        shortestPathNodes.clear();
+    }
+
     public ArrayList<Node> getNodes() { return nodes; }
     public ArrayList<Edge> getEdges() { return edges; }
     public int[][] getAdjacencyMatrix() { return adjacencyMatrix; }
     public String[] getLabel() { return label; }
     public ArrayList<Edge> getShortestPathEdges() { return shortestPathEdges; }
+    public ArrayList<Integer> getShortestPathNodes() { return shortestPathNodes; }
 
     // Inner class untuk hasil Dijkstra
     public static class DijkstraResult {
